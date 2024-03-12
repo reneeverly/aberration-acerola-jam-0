@@ -2,6 +2,7 @@ program main
    use, intrinsic :: iso_c_binding, only: c_null_char, c_ptr, c_null_ptr
    use resources
    use raylib
+   use spacearcade_class
    implicit none (type, external)
 
    ! --
@@ -23,6 +24,10 @@ program main
 
    real :: timer_move, timer_now, timer_experiment
    real, target :: lens_strength, lens_tightness
+
+   type(spacearcade) :: game
+
+   integer :: x, y
 
    ! --
 
@@ -48,6 +53,8 @@ program main
 
    timer_move = get_time()
 
+   game = spacearcade(1)
+
    ! default values
    lens_strength = 0.00
    lens_tightness = 2.75
@@ -55,6 +62,8 @@ program main
    do while (.not. window_should_close())
       ! Let's not use frames for anything - use time instead!
       timer_now = get_time()
+
+      call game%update_gamestate()
 
       ! Run the optical aberration shader
 !      if (timer_now > timer_experiment + 0.05) then
@@ -73,7 +82,19 @@ program main
       call begin_texture_mode(canvas) 
          call clear_background(black)
          call draw_text('Hello, world!' // c_null_char, 10, 10, 16, white)
-         call draw_texture_pro(ship_tex, rectangle_type(0, 0, tile_size, tile_size), rectangle_type(40, 40, tile_size, tile_size), vector2_type(tile_half, tile_half), -15.0, white)
+
+         ! draw map
+         do x=1,34
+            do y=1,19
+               if (game%level_map(x, y) >= 1) then
+                  call draw_rectangle_v(vector2_type((x - 1)*tile_size, (y - 1)*tile_size), vector2_type(tile_size, tile_size), blue)
+               end if
+            end do
+         end do
+
+         ! draw bounding box and then ship
+         call draw_rectangle_v(vector2_type(nint(game%player(1) - 1)*tile_size, nint(game%player(2) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
+         call draw_texture_pro(ship_tex, rectangle_type(0, 0, tile_size, tile_size), rectangle_type((game%player(1) - 1)*tile_size + tile_half, (game%player(2) - 1)*tile_size + tile_half, tile_size, tile_size), vector2_type(tile_half, tile_half), game%player(3), white)
          call draw_text("I'm in the center!" // c_null_char, screen_width_in_tiles / 2 * tile_size, screen_height_in_tiles / 2 * tile_size, 20, white)
       call end_texture_mode()
       call begin_drawing()
