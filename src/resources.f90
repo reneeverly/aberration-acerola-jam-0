@@ -4,6 +4,10 @@ module resources
    implicit none
    integer(c_int), bind(c, name="thing_size") :: thing_size
    integer(kind=c_unsigned_char), bind(c, name="thing") :: thing
+
+   integer(c_int), bind(c, name="ship_png_size") :: ship_png_size
+   integer(kind=c_unsigned_char), bind(c, name="ship_png") :: ship_png
+
    integer(c_int), bind(c, name="optical_aberration_fs_size") :: optical_aberration_fs_size
    character(kind=c_char), bind(c, name="optical_aberration_fs") :: optical_aberration_fs
 
