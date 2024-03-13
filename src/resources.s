@@ -19,6 +19,18 @@ _ship_png_end:
 _ship_png_size:
    .int _ship_png_end - _ship_png
 
+
+   .global _blackhole_png
+   .balign 4
+_blackhole_png:
+   .incbin "blackhole.png"
+_blackhole_png_end:
+   .global _blackhole_png_size
+   .balign 4
+_blackhole_png_size:
+   .int _blackhole_png_end - _blackhole_png
+
+
    .global _optical_aberration_fs
    .balign 4
 _optical_aberration_fs:

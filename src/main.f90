@@ -12,13 +12,16 @@ program main
 
    integer, parameter :: tile_size = 40
    integer, parameter :: tile_half = tile_size / 2
+   integer, parameter :: tile_fourth = tile_half / 2
+   integer, parameter :: tile_eighth = tile_fourth / 2
+   integer, parameter :: tile_three_eighth = tile_fourth + tile_eighth
    integer, parameter :: screen_width_in_tiles = screen_width / tile_size
    integer, parameter :: screen_height_in_tiles = screen_height / tile_size
 
    type(shader_type) :: fshader
 
-   type(image_type) :: ship_image
-   type(texture2d_type) :: ship_tex
+   type(image_type) :: ship_image, blackhole_image
+   type(texture2d_type) :: ship_tex, blackhole_tex
    
    type(render_texture2d_type) :: canvas
 
@@ -47,6 +50,11 @@ program main
    call set_texture_filter(ship_tex, texture_filter_bilinear)
    call unload_image(ship_image)
 
+   blackhole_image = load_image_from_memory('.png' // c_null_char, blackhole_png, blackhole_png_size)
+   blackhole_tex = load_texture_from_image(blackhole_image)
+   call set_texture_filter(blackhole_tex, texture_filter_bilinear)
+   call unload_image(blackhole_image)
+
    ! the canvas upon which the shader is written to
    canvas = load_render_texture(screen_width, screen_height)
    call set_texture_filter(canvas%texture, texture_filter_bilinear)
@@ -74,8 +82,10 @@ program main
 !            lens_tightness = 2.75
 !         end if
 !         lens_tightness = lens_tightness - 0.01
-!         call set_shader_value(fshader, get_shader_location(fshader, "lens_strength" // c_null_char), c_loc(lens_strength), shader_uniform_float)
-!         call set_shader_value(fshader, get_shader_location(fshader, "lens_tightness" // c_null_char), c_loc(lens_tightness), shader_uniform_float)
+         lens_strength = game%optical_aberration(1)
+         lens_tightness = game%optical_aberration(2)
+         call set_shader_value(fshader, get_shader_location(fshader, "lens_strength" // c_null_char), c_loc(lens_strength), shader_uniform_float)
+         call set_shader_value(fshader, get_shader_location(fshader, "lens_tightness" // c_null_char), c_loc(lens_tightness), shader_uniform_float)
 !         timer_experiment = timer_now
 !      end if
 
@@ -87,8 +97,16 @@ program main
          ! draw map
          do x=1,34
             do y=1,19
-               if (game%level_map(x, y) >= 1) then
+               if (game%level_map(x, y) == 1) then
                   call draw_rectangle_v(vector2_type((x - 1)*tile_size, (y - 1)*tile_size), vector2_type(tile_size, tile_size), blue)
+               else if (game%level_map(x, y) == 2) then
+                  call draw_texture_pro(blackhole_tex, rectangle_type(0, 0, tile_size*3, tile_size*3), rectangle_type((x - 2)*tile_size, (y - 2)*tile_size, tile_size*3, tile_size*3), vector2_type(0, 0), 0.0, white)
+               else if (game%level_map(x, y) == -1) then
+                  call draw_rectangle_v(vector2_type((x - 1)*tile_size+tile_fourth, (y - 1)*tile_size+tile_fourth), vector2_type(tile_half, tile_half), green)
+               else if (game%level_map(x, y) == -2) then
+                  call draw_rectangle_v(vector2_type((x - 1)*tile_size, (y - 1)*tile_size), vector2_type(tile_size, tile_size), white)
+               else if (game%level_map(x, y) == -3) then
+                  call draw_rectangle_v(vector2_type((x - 1)*tile_size+tile_three_eighth, (y - 1)*tile_size+tile_three_eighth), vector2_type(tile_fourth, tile_fourth), green)
                end if
             end do
          end do
@@ -96,7 +114,7 @@ program main
          ! draw bounding box and then ship
          !call draw_rectangle_v(vector2_type(nint(game%player(1) - 1)*tile_size, nint(game%player(2) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
          call draw_texture_pro(ship_tex, rectangle_type(0, 0, tile_size, tile_size), rectangle_type((game%player(1) - 1)*tile_size + tile_half, (game%player(2) - 1)*tile_size + tile_half, tile_size, tile_size), vector2_type(tile_half, tile_half), game%player(3), white)
-         call draw_text("I'm in the center!" // c_null_char, screen_width_in_tiles / 2 * tile_size, screen_height_in_tiles / 2 * tile_size, 20, white)
+         !call draw_text("I'm in the center!" // c_null_char, screen_width_in_tiles / 2 * tile_size, screen_height_in_tiles / 2 * tile_size, 20, white)
 
       call end_texture_mode()
       call begin_drawing()
