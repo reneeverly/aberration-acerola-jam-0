@@ -10,6 +10,7 @@ module spacearcade_class
       real :: optical_aberration(2) ! index 1 = lens_strength, index 2 = lens_tightness
       integer :: current_level_num
       real :: timer_player_move, timer_player_fire
+      real :: blackhole(2)
    contains
       procedure :: change_level => sa_change_level
       !procedure :: update_player_tex
@@ -70,6 +71,7 @@ contains
                                     &shape(this%level_map))
          this%player = (/2.0, 18.0, 90.0/)
          this%player_actual = (/2, 18/)
+         this%blackhole = (/9, 8/)
       end if
       this%current_level_num = level_num
    end subroutine
@@ -81,7 +83,7 @@ contains
 
    subroutine update_gamestate(this)
       class(spacearcade) :: this
-      real :: timer_now, slew_dist, speed_modifier
+      real :: timer_now, slew_dist, speed_modifier, optical_dist
 
       timer_now = get_time()
 
@@ -156,6 +158,14 @@ contains
       if (slew_dist > 0.5) then
          this%timer_player_move = timer_now
       end if 
+
+      ! calculate optical aberration around black hole
+      optical_dist = sqrt((this%player(1)-this%blackhole(1))**2 + (this%player(2)-this%blackhole(2))**2)
+      if (optical_dist < 8) then
+         this%optical_aberration = (/0.00 + 0.04 * (8 - optical_dist)**2, 2.75 - 0.02 * (8 - optical_dist)**2/)
+      else
+         this%optical_aberration = (0.00, 2.75)
+      end if
 
    end subroutine
 
