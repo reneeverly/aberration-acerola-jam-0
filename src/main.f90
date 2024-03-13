@@ -80,6 +80,7 @@ program main
 !      end if
 
       call begin_texture_mode(canvas) 
+
          call clear_background(black)
          call draw_text('Hello, world!' // c_null_char, 10, 10, 16, white)
 
@@ -93,15 +94,18 @@ program main
          end do
 
          ! draw bounding box and then ship
-         call draw_rectangle_v(vector2_type(nint(game%player(1) - 1)*tile_size, nint(game%player(2) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
+         !call draw_rectangle_v(vector2_type(nint(game%player(1) - 1)*tile_size, nint(game%player(2) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
          call draw_texture_pro(ship_tex, rectangle_type(0, 0, tile_size, tile_size), rectangle_type((game%player(1) - 1)*tile_size + tile_half, (game%player(2) - 1)*tile_size + tile_half, tile_size, tile_size), vector2_type(tile_half, tile_half), game%player(3), white)
          call draw_text("I'm in the center!" // c_null_char, screen_width_in_tiles / 2 * tile_size, screen_height_in_tiles / 2 * tile_size, 20, white)
+
       call end_texture_mode()
       call begin_drawing()
+
          call clear_background(darkgray)
          call begin_shader_mode(fshader)
             call draw_texture_pro(canvas%texture, rectangle_type(0, 0, screen_width, -screen_height), rectangle_type(0, 0, screen_width, screen_height), vector2_type(0, 0), 0.0, white)
          call end_shader_mode()
+
       call end_drawing()
    end do
 

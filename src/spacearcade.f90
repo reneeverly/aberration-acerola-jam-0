@@ -5,7 +5,7 @@ module spacearcade_class
       integer :: width = 34
       integer :: height = 19
       real :: player(3) ! x, y, rot
-      !type(texture2d_type) :: ship_tex
+      integer :: player_actual(2)
       integer :: level_map(34, 19) ! magic numbers: screen_width/tile_size (1360/40), screen_height/tile_size (760/40)
       real :: optical_aberration(2) ! index 1 = lens_strength, index 2 = lens_tightness
 
@@ -31,6 +31,7 @@ contains
 
       ! TEMPORARY TODO player start location
       constructor%player = (/2.0, 18.0, 90.0/)
+      constructor%player_actual = (/2, 18/)
 
       ! set all timers to now
       constructor%timer_player_move = get_time()
@@ -76,106 +77,84 @@ contains
    !   type(texture2d_type), intent(in) :: player_tex
    !end subroutine
 
-   subroutine update_gamestate(this) 
+   subroutine update_gamestate(this)
       class(spacearcade) :: this
-      real :: timer_now
-      integer :: x_n, x_f, x_c
-      integer :: y_n, y_f, y_c
-      integer :: rot
+      real :: timer_now, slew_dist, speed_modifier
 
       timer_now = get_time()
 
-      ! Nearest Tile
-      x_n = nint(this%player(1))
-      y_n = nint(this%player(2))
-      rot = nint(this%player(3))
+      speed_modifier = 0.5
 
-      ! Tile movement is happening from 90deg or 180deg
-      x_f = floor(this%player(1))
-      y_f = floor(this%player(2))
-
-      ! Tile movement is happening from 270deg or 0deg
-      x_c = ceiling(this%player(1))
-      y_c = ceiling(this%player(2))
-
-      ! check for able to rotate, and in what directions, then do it
-      !if (abs(x_n - this%player(1)) < 0.25 .and. abs(y_n - this%player(2)) < 0.25) then
-         if (is_key_down(key_right)) then
-            if (this%level_map(x_n + 1, y_n) < 1) then
-               rot = 90
-               this%player(3) = 90.0
-               ! bugfix visually align to col/row
-               this%player(2) = y_n
-            end if
-         else if (is_key_down(key_left)) then
-            if (this%level_map(x_n - 1, y_n) < 1) then
-               rot = 270
-               this%player(3) = 270.0
-               ! bugfix visually align to col/row
-               this%player(2) = y_n
-            end if
-         else if (is_key_down(key_down)) then
-            if (this%level_map(x_n, y_n + 1) < 1) then
-               rot = 180
-               this%player(3) = 180.0
-               ! bugfix visually align to col/row
-               this%player(1) = x_n
-            end if
-         else if (is_key_down(key_up)) then
-            if (this%level_map(x_n, y_n - 1) < 1) then
-               rot = 0
-               this%player(3) = 0.0
-               ! bugfix visually align to col/row
-               this%player(1) = x_n
+      ! only allow reorientation when not up against a block facing that direction
+      if (is_key_down(key_right) .and. this%level_map(this%player_actual(1) + 1, this%player_actual(2)) < 1) then
+         ! fix for seemingly teleporting ship
+         if (this%player(3) /= 90.0) then
+            this%player(2) = this%player_actual(2)
+            if (this%player(3) == 270.0) then
+               this%timer_player_move = timer_now - (speed_modifier - (timer_now - this%timer_player_move))
             end if
          end if
-      !end if
-      
-
-      ! perform movement
-      if (rot == 90) then
-         this%player(1) = x_f + (timer_now - this%timer_player_move) * 2
-      else if (rot == 270) then
-         this%player(1) = x_c - (timer_now - this%timer_player_move) * 2
-      else if (rot == 180) then
-         this%player(2) = y_f + (timer_now - this%timer_player_move) * 2
-      else if (rot == 0) then
-         this%player(2) = y_c - (timer_now - this%timer_player_move) * 2
+         this%player(3) = 90.0
+      else if (is_key_down(key_left) .and. this%level_map(this%player_actual(1) - 1, this%player_actual(2)) < 1) then
+         ! fix for seemingly teleporting ship
+         if (this%player(3) /= 270.0) then
+            this%player(2) = this%player_actual(2)
+            if (this%player(3) == 90.0) then
+               this%timer_player_move = timer_now - (speed_modifier - (timer_now - this%timer_player_move))
+            end if
+         end if
+         this%player(3) = 270.0
+      else if (is_key_down(key_down) .and. this%level_map(this%player_actual(1), this%player_actual(2) + 1) < 1) then
+         ! fix for seemingly teleporting ship
+         if (this%player(3) /= 180.0) then
+            this%player(1) = this%player_actual(1)
+            if (this%player(3) == 0.0) then
+               this%timer_player_move = timer_now - (speed_modifier - (timer_now - this%timer_player_move))
+            end if
+         end if
+         this%player(3) = 180.0
+      else if (is_key_down(key_up) .and. this%level_map(this%player_actual(1), this%player_actual(2) - 1) < 1) then
+         ! fix for seemingly teleporting ship
+         if (this%player(3) /= 0.0) then
+            this%player(1) = this%player_actual(1)
+            if (this%player(3) == 180.0) then
+               this%timer_player_move = timer_now - (speed_modifier - (timer_now - this%timer_player_move))
+            end if
+         end if
+         this%player(3) = 0.0
       end if
-      
 
-      ! reset timer if move duration elapsed
-      if (timer_now - this%timer_player_move > 0.5) then
+      ! perform visual movement via slew
+      ! rather than dealing with the mess of floor and ciel, we'll just move
+      ! the ship around its canonical location
+      ! be sure to normalize the slew around the time shifts
+      slew_dist = ((timer_now - this%timer_player_move) - (speed_modifier / 2)) * (1 / speed_modifier)
+      if (this%player(3) == 90.0) then
+         if (slew_dist < 0 .and. (this%player_actual(1) + slew_dist > this%player(1)) .or. this%level_map(this%player_actual(1) + 1, this%player_actual(2)) < 1) then
+            this%player(1) = this%player_actual(1) + slew_dist
+            if (slew_dist > 0.5) this%player_actual(1) = this%player_actual(1) + 1
+         end if
+      else if (this%player(3) == 270.0) then
+         if (slew_dist < 0 .and. (this%player_actual(1) - slew_dist < this%player(1)) .or. this%level_map(this%player_actual(1) - 1, this%player_actual(2)) < 1) then
+            this%player(1) = this%player_actual(1) - slew_dist
+            if (slew_dist > 0.5) this%player_actual(1) = this%player_actual(1) - 1
+         end if
+      else if (this%player(3) == 180.0) then
+         if (slew_dist < 0 .and. (this%player_actual(2) + slew_dist > this%player(2)) .or. this%level_map(this%player_actual(1), this%player_actual(2) + 1) < 1) then
+            this%player(2) = this%player_actual(2) + slew_dist
+            if (slew_dist > 0.5) this%player_actual(2) = this%player_actual(2) + 1
+         end if
+      else if (this%player(3) == 0.0) then
+         if (slew_dist < 0 .and. (this%player_actual(2) - slew_dist < this%player(2)) .or. this%level_map(this%player_actual(1), this%player_actual(2) - 1) < 1) then
+            this%player(2) = this%player_actual(2) - slew_dist
+            if (slew_dist > 0.5) this%player_actual(2) = this%player_actual(2) - 1
+         end if
+      end if
+
+      if (slew_dist > 0.5) then
          this%timer_player_move = timer_now
-      end if
+      end if 
 
-      ! constrain to world bounds
-      if (this%player(1) >= this%width) this%player(1) = this%width
-      if (this%player(2) >= this%height) this%player(2) = this%height
-      if (this%player(1) < 1) this%player(1) = 1
-      if (this%player(2) < 1) this%player(2) = 1
-
-      ! constrain to map
-      if (this%level_map(x_n + 1, y_n) >= 1) then
-         if (this%player(1) > x_n) then
-            this%player(1) = x_n
-         end if
-      else if (this%level_map(x_n - 1, y_n) >= 1) then
-         if (this%player(1) < x_n) then
-            this%player(1) = x_n
-         end if
-      end if
-      ! break the else chain due to edge case where ship will have both x and y collisions
-      if (this%level_map(x_n, y_n + 1) >= 1) then
-         if (this%player(2) > y_n) then
-            this%player(2) = y_n
-         end if
-      else if (this%level_map(x_n, y_n - 1) >= 1) then
-         if (this%player(2) < y_n) then
-            this%player(2) = y_n
-         end if
-      end if
-      
    end subroutine
 
    subroutine draw_gamestate(this)
