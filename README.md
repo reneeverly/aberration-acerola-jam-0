@@ -35,6 +35,6 @@ Install [MinGW GFortran MSVCRT](https://winlibs.com/)
 Fetch [Interkosmos's Fortran Interface Bindings for Raylib](https://github.com/interkosmos/fortran-raylib) and build them.  My build script assumes you clone that repository into the folder that contains this repository (ex paths: `~/repos/fortran-raylib` and `~/repos/aberration-acerola-jam-0`).  The `make` provided in the downloadable zip is `mingw32-make`.
 
 Build with the following command:
-```batch
-gfortran -L/usr/local/lib -LC:/raylib/raylib/src -I/usr/local/include -I../fortran-raylib src/resources.f90 src/spacearcade.f90 src/main.f90 -Ires/ src/resources.s ../fortran-raylib/libfortran-raylib.a -lraylib -lopengl32 -lgdi32 -lwinmm -fno-range-check -ffree-line-length-none
+```cmd
+buildwin64.bat
 ```
