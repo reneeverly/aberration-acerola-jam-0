@@ -32,6 +32,10 @@ program main
 
    integer :: x, y
 
+   character(len=512) :: string_buffer
+
+   type(font_type) :: ds_font_20, ds_font_60
+
    ! --
 
    ! This has to be done before texture loading or it segfaults.
@@ -59,7 +63,19 @@ program main
    canvas = load_render_texture(screen_width, screen_height)
    call set_texture_filter(canvas%texture, texture_filter_bilinear)
 
+   ! load the font
+   !ds_font_20 = load_font_ex_null('res/digital-scientifika.ttf', 20, c_null_ptr, 0)
+   !ds_font_60 = load_font_ex_null('res/digital-scientifika.ttf', 20, c_null_ptr, 0)
+   !ds_font_20 = load_font_from_memory_null('.ttf' // c_null_char, ds_ttf, ds_ttf_size, 20, c_null_ptr, 0)
+   !ds_font_60 = load_font_from_memory_null('.ttf' // c_null_char, ds_ttf, ds_ttf_size, 60, c_null_ptr, 0)
+   !call gen_texture_mipmaps(ds_font_20%texture)
+   !call gen_texture_mipmaps(ds_font_60%texture)
+   !call set_texture_filter(ds_font_20%texture, texture_filter_point)
+   !call set_texture_filter(ds_font_60%texture, texture_filter_point)
+
    timer_move = get_time()
+
+   call run_titlescreen()
 
    game = spacearcade(1)
 
@@ -72,6 +88,12 @@ program main
       timer_now = get_time()
 
       call game%update_gamestate()
+
+
+      if (game%lives <= 0) then
+         call run_deathscreen()
+         game = spacearcade(1)
+      end if
 
       ! Run the optical aberration shader
 !      if (timer_now > timer_experiment + 0.05) then
@@ -111,10 +133,32 @@ program main
             end do
          end do
 
+         ! Display the current number of points
+         write (string_buffer, '(I8)') game%points
+         call draw_text('Points: ' //trim(adjustl(string_buffer)) // c_null_char, 10, 10, 20, white)
+
+         ! display the current charge count
+         write (string_buffer, '(I8)') game%charge
+         call draw_text('Charge: ' //trim(adjustl(string_buffer)) // c_null_char, 10, screen_height - 30, 20, white)
+
+         ! display the current lives
+         write (string_buffer, '(I8)') game%lives
+         call draw_text('Lives: ' // trim(adjustl(string_buffer)) // c_null_char, 600, screen_height - 30, 20, white)
+         
+
          ! draw bounding box and then ship
          !call draw_rectangle_v(vector2_type(nint(game%player(1) - 1)*tile_size, nint(game%player(2) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
          call draw_texture_pro(ship_tex, rectangle_type(0, 0, tile_size, tile_size), rectangle_type((game%player(1) - 1)*tile_size + tile_half, (game%player(2) - 1)*tile_size + tile_half, tile_size, tile_size), vector2_type(tile_half, tile_half), game%player(3), white)
          !call draw_text("I'm in the center!" // c_null_char, screen_width_in_tiles / 2 * tile_size, screen_height_in_tiles / 2 * tile_size, 20, white)
+
+         ! draw enemy ships
+         do x=1,number_of_enemies
+            if (game%enemies(x,1) == 1) then
+               call draw_rectangle_v(vector2_type((game%enemies(x, 2) - 1)*tile_size, (game%enemies(x, 3) - 1)*tile_size), vector2_type(tile_size, tile_size), red)
+            else
+               !print *, "Enemy", x, " is disabled"
+            end if
+         end do
 
       call end_texture_mode()
       call begin_drawing()
@@ -128,4 +172,31 @@ program main
    end do
 
    call close_window()
+
+contains
+
+   subroutine run_titlescreen()
+      do while(.not. window_should_close())
+         call begin_drawing()
+            call clear_background(darkgray)
+            !call draw_text_ex(ds_font_20, 'Press [ENTER] to begin!' // c_null_char, vector2_type(screen_width / 2 - 60, screen_height / 2), 20.0, 0.0, white)
+            call draw_text('Space Arcade' // c_null_char, 40, 40, 40, white)
+            call draw_text('Press [ENTER] to begin!' // c_null_char, 40, screen_height / 2 - 20, 40, white)
+            call draw_text('Use arrow keys to move, [SPACE] to fire.' // c_null_char, 40, screen_height / 2 + 20, 40, white)
+            if (is_key_down(key_enter)) exit
+         call end_drawing()
+      end do
+   end subroutine
+
+   subroutine run_deathscreen()
+      do while (.not. window_should_close())
+         call begin_drawing()
+            call clear_background(darkgray)
+            write (string_buffer, '(I8)') game%points
+            call draw_text('Final score: ' // string_buffer // c_null_char, 40, 40, 40, white)
+            call draw_text('Press [ENTER] to reset back to the beginning of the game.' // c_null_char, 40, screen_height / 2 - 20, 40, white)
+            if (is_key_down(key_enter)) exit
+         call end_drawing()
+      end do
+   end subroutine
 end program

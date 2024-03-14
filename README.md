@@ -1,6 +1,12 @@
 # aberration-acerola-jam-0
 My submission for the Acerola Jam 0 game jam.
 
+Licenses:
+* Code is MPL 2.0
+  * This includes all fortran, assembly, and shader files.
+* Resources are CC BY-NC-ND
+  * This includes my font, sound effects, music, and textures
+
 ## Build Instructions
 MacOS & Windows are supported platforms.
 

@@ -30,6 +30,16 @@ _blackhole_png_end:
 _blackhole_png_size:
    .int _blackhole_png_end - _blackhole_png
 
+/*   .global _ds_ttf
+   .balign 4
+_ds_ttf:
+   .incbin "digital-scientifika.ttf"
+_ds_ttf_end:
+   .global _ds_ttf_size
+   .balign 4
+_ds_ttf_size:
+   .int _ds_ttf_end - _ds_ttf*/
+
 
    .global _optical_aberration_fs
    .balign 4
